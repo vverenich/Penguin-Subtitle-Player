@@ -138,7 +138,6 @@ MainWindow::MainWindow(QWidget *parent)
   m_ShortcutPrevious5Sec->setContext(Qt::ApplicationShortcut);
 
   QObject::connect(m_ShortcutTogglePlay.get(), &QShortcut::activated, this, &MainWindow::togglePlay);
-  QObject::connect(m_ShortcutTogglePlay.get(), &QShortcut::activatedAmbiguously, this, &MainWindow::togglePlay);
   QObject::connect(m_ShortcutNext5Sec.get(), &QShortcut::activated, this, &MainWindow::next5Sec);
   QObject::connect(m_ShortcutPrevious5Sec.get(), &QShortcut::activated, this, &MainWindow::previous5Sec);
 
