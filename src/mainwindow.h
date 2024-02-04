@@ -1,11 +1,14 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <memory>
+
 #include "QString"
 #include "engine.h"
 #include <QMainWindow>
 #include <QSettings>
 #include <QSystemTrayIcon>
+#include <QShortcut>
 
 namespace Ui {
 class MainWindow;
@@ -33,6 +36,8 @@ public slots:
   void openFileDialog();
   void openSkipToTimeDialog();
   void activateNextClickCounts();
+  void next5Sec();
+  void previous5Sec();
 
 protected:
   void paintEvent(QPaintEvent *event);
@@ -76,6 +81,10 @@ private:
   QMenu *menu = 0;
   QSettings settings;
   bool skipped = false;
+
+  std::unique_ptr<QShortcut> m_ShortcutTogglePlay{nullptr};
+  std::unique_ptr<QShortcut> m_ShortcutNext5Sec{nullptr};
+  std::unique_ptr<QShortcut> m_ShortcutPrevious5Sec{nullptr};
 };
 
 #endif // MAINWINDOW_H

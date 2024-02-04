@@ -125,7 +125,7 @@ HEADERS += \
 FORMS    += \
     resource/ui/mainwindow.ui
 
-CONFIG += c++11
+CONFIG += c++14
 
 RESOURCES += \
     resource/resource.qrc

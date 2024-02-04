@@ -39,15 +39,17 @@
  */
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow), timer(new QTimer(this)) {
+    : QMainWindow(parent),
+      ui(new Ui::MainWindow),
+      timer(new QTimer(this))
+{
   ui->setupUi(this);
 
   this->setWindowIcon(QIcon(":/icon.png"));
 
   Qt::WindowFlags flags = this->windowFlags();
 
-  this->setWindowFlags(flags | Qt::X11BypassWindowManagerHint |
-                       Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint); //
+  this->setWindowFlags(flags  | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint); //
   this->setAttribute(Qt::WA_TranslucentBackground, true);
 
   timer->setTimerType(Qt::PreciseTimer); // fixes subtitle delay
@@ -125,6 +127,21 @@ MainWindow::MainWindow(QWidget *parent)
 
   this->loadPref();
   setAcceptDrops(true);
+
+
+  m_ShortcutTogglePlay = std::make_unique<QShortcut>(QKeySequence(Qt::Key_Space), this);
+  m_ShortcutNext5Sec = std::make_unique<QShortcut>(QKeySequence(Qt::Key_Right), this);
+  m_ShortcutPrevious5Sec = std::make_unique<QShortcut>(QKeySequence(Qt::Key_Left), this);
+
+  m_ShortcutTogglePlay->setContext(Qt::ApplicationShortcut);
+  m_ShortcutNext5Sec->setContext(Qt::ApplicationShortcut);
+  m_ShortcutPrevious5Sec->setContext(Qt::ApplicationShortcut);
+
+  QObject::connect(m_ShortcutTogglePlay.get(), &QShortcut::activated, this, &MainWindow::togglePlay);
+  QObject::connect(m_ShortcutTogglePlay.get(), &QShortcut::activatedAmbiguously, this, &MainWindow::togglePlay);
+  QObject::connect(m_ShortcutNext5Sec.get(), &QShortcut::activated, this, &MainWindow::next5Sec);
+  QObject::connect(m_ShortcutPrevious5Sec.get(), &QShortcut::activated, this, &MainWindow::previous5Sec);
+
 }
 
 MainWindow::~MainWindow() {
@@ -309,6 +326,26 @@ void MainWindow::activateNextClickCounts() {
 
     setPlay(!isPlaying);
   }
+}
+
+void MainWindow::next5Sec()
+{
+  if (!engine)
+    return;
+  long long time = engine->getTimeWithSubtitleOffset(currentTime, 5);
+  currentTime = time;
+  skipped = true;
+  update();
+}
+
+void MainWindow::previous5Sec()
+{
+  if (!engine)
+    return;
+  long long time = engine->getTimeWithSubtitleOffset(currentTime, -5);
+  currentTime = time;
+  skipped = true;
+  update();
 }
 
 /*
