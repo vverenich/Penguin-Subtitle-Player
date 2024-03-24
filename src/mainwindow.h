@@ -36,11 +36,21 @@ public slots:
   void openFileDialog();
   void openSkipToTimeDialog();
   void activateNextClickCounts();
+
   void next5Sec();
   void previous5Sec();
+  void fastForwardVideo();
+  void fastBackwardVideo();
+  void togglePlayVideo();
+  void fastForwardAll();
+  void fastBackwardAll();
+  void togglePlayAll();
+
 
 protected:
   void paintEvent(QPaintEvent *event);
+
+private slots:
 
 private:
   Ui::MainWindow *ui;
@@ -81,10 +91,6 @@ private:
   QMenu *menu = 0;
   QSettings settings;
   bool skipped = false;
-
-  std::unique_ptr<QShortcut> m_ShortcutTogglePlay{nullptr};
-  std::unique_ptr<QShortcut> m_ShortcutNext5Sec{nullptr};
-  std::unique_ptr<QShortcut> m_ShortcutPrevious5Sec{nullptr};
 };
 
 #endif // MAINWINDOW_H

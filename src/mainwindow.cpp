@@ -34,6 +34,65 @@
 #include "string"
 #include "ui_mainwindow.h"
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/types.h>
+#include <sys/select.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+
+#define portable_usleep(t) select(0, NULL, NULL,NULL, t)
+
+enum { MOUSE_RIGHT_CLICK, MOUSE_LEFT_CLICK };
+
+void
+mouse_click(Display *display, int x, int y, int click_type, struct timeval *t)
+{
+    Window root;
+    XEvent event;
+
+    root = DefaultRootWindow(display);
+    XWarpPointer(display, None, root, 0, 0, 0, 0, x, y);
+
+    memset(&event, 0, sizeof(event));
+
+    event.xbutton.type        = ButtonPress;
+    event.xbutton.button      = click_type;
+    event.xbutton.same_screen = True;
+
+    XQueryPointer(display, root, &event.xbutton.root, &event.xbutton.window,
+                  &event.xbutton.x_root, &event.xbutton.y_root,
+                  &event.xbutton.x, &event.xbutton.y, &event.xbutton.state);
+
+    event.xbutton.subwindow = event.xbutton.window;
+
+    while(event.xbutton.subwindow) {
+      event.xbutton.window = event.xbutton.subwindow;
+      XQueryPointer(display, event.xbutton.window,&event.xbutton.root,
+                    &event.xbutton.subwindow, &event.xbutton.x_root,
+                    &event.xbutton.y_root, &event.xbutton.x, &event.xbutton.y,
+                    &event.xbutton.state);
+    }
+
+    if(XSendEvent(display, PointerWindow, True, 0xfff, &event)==0)
+      fprintf(stderr, "XSendEvent()\n");
+
+    XFlush(display);
+    portable_usleep(t); /* keeps the click pressed */
+
+    event.type = ButtonRelease;
+    event.xbutton.state = 0x100;
+
+    if(XSendEvent(display, PointerWindow, True, 0xfff, &event)==0)
+      fprintf(stderr, "XSendEvent()\n");
+
+    XFlush(display);
+}
+
+
 /*
  * Constructor and destructor
  */
@@ -49,7 +108,8 @@ MainWindow::MainWindow(QWidget *parent)
 
   Qt::WindowFlags flags = this->windowFlags();
 
-  this->setWindowFlags(flags  | Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint); //
+  this->setWindowFlags(flags | Qt::X11BypassWindowManagerHint |
+                       Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint);
   this->setAttribute(Qt::WA_TranslucentBackground, true);
 
   timer->setTimerType(Qt::PreciseTimer); // fixes subtitle delay
@@ -73,6 +133,12 @@ MainWindow::MainWindow(QWidget *parent)
           SLOT(sliderMoved(int)));
 
   connect(ui->timeLabel, SIGNAL(clicked()), this, SLOT(openSkipToTimeDialog()));
+
+
+  connect(ui->backwardButtonAll, SIGNAL(clicked()), this, SLOT(fastBackwardAll()));
+  connect(ui->forwardButtonAll, SIGNAL(clicked()), this, SLOT(fastForwardAll()));
+  connect(ui->toggleButtonAll, SIGNAL(clicked()), this, SLOT(togglePlayAll()));
+
 
   if (QSystemTrayIcon::isSystemTrayAvailable()) {
     QSystemTrayIcon *trayIcon = new QSystemTrayIcon(this);
@@ -127,20 +193,6 @@ MainWindow::MainWindow(QWidget *parent)
 
   this->loadPref();
   setAcceptDrops(true);
-
-
-  m_ShortcutTogglePlay = std::make_unique<QShortcut>(QKeySequence(Qt::Key_Space), this);
-  m_ShortcutNext5Sec = std::make_unique<QShortcut>(QKeySequence(Qt::Key_Right), this);
-  m_ShortcutPrevious5Sec = std::make_unique<QShortcut>(QKeySequence(Qt::Key_Left), this);
-
-  m_ShortcutTogglePlay->setContext(Qt::ApplicationShortcut);
-  m_ShortcutNext5Sec->setContext(Qt::ApplicationShortcut);
-  m_ShortcutPrevious5Sec->setContext(Qt::ApplicationShortcut);
-
-  QObject::connect(m_ShortcutTogglePlay.get(), &QShortcut::activated, this, &MainWindow::togglePlay);
-  QObject::connect(m_ShortcutNext5Sec.get(), &QShortcut::activated, this, &MainWindow::next5Sec);
-  QObject::connect(m_ShortcutPrevious5Sec.get(), &QShortcut::activated, this, &MainWindow::previous5Sec);
-
 }
 
 MainWindow::~MainWindow() {
@@ -327,6 +379,24 @@ void MainWindow::activateNextClickCounts() {
   }
 }
 
+void MainWindow::fastForwardAll()
+{
+    next5Sec();
+    fastForwardVideo();
+}
+
+void MainWindow::fastBackwardAll()
+{
+    previous5Sec();
+    fastBackwardVideo();
+}
+
+void MainWindow::togglePlayAll()
+{
+    togglePlay();
+    togglePlayVideo();
+}
+
 void MainWindow::next5Sec()
 {
   if (!engine)
@@ -345,6 +415,41 @@ void MainWindow::previous5Sec()
   currentTime = time;
   skipped = true;
   update();
+}
+
+void MainWindow::fastForwardVideo()
+{
+
+}
+
+void MainWindow::fastBackwardVideo()
+{
+
+}
+
+void MainWindow::togglePlayVideo()
+{
+    int x;
+    int y;
+    Display        *display;
+    struct timeval t;
+
+    display = XOpenDisplay(NULL);
+
+    if(!display) {
+      fprintf(stderr, "Can't open display!\n");
+      exit(EXIT_FAILURE);
+    }
+
+    x = 400;
+    y = 600;
+
+    t.tv_sec  = 0;
+    t.tv_usec = 100000;  /* 0.5 secs */
+
+    mouse_click(display, x, y, MOUSE_LEFT_CLICK, &t);
+
+    XCloseDisplay(display);
 }
 
 /*
@@ -550,6 +655,9 @@ void MainWindow::enableControls() {
   ui->prevButton->setEnabled(true);
   ui->nextButton->setEnabled(true);
   ui->toggleButton->setEnabled(true);
+  ui->backwardButtonAll->setEnabled(true);
+  ui->forwardButtonAll->setEnabled(true);
+  ui->toggleButtonAll->setEnabled(true);
   ui->horizontalSlider->setEnabled(true);
 }
 
@@ -649,3 +757,4 @@ long long MainWindow::getAdjustInterval() {
       .value("gen/adjust", QVariant::fromValue(PrefConstants::ADJUST_INTERVAL))
       .toInt();
 }
+

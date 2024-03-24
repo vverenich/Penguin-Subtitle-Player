@@ -202,3 +202,5 @@ unix:!macx {
 
     INSTALLS += target icon desktop appdata
 }
+
+unix:!macx: LIBS +=  -lX11
