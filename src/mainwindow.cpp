@@ -33,65 +33,7 @@
 #include "prefconstants.h"
 #include "string"
 #include "ui_mainwindow.h"
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/select.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-
-#define portable_usleep(t) select(0, NULL, NULL,NULL, t)
-
-enum { MOUSE_RIGHT_CLICK, MOUSE_LEFT_CLICK };
-
-void
-mouse_click(Display *display, int x, int y, int click_type, struct timeval *t)
-{
-    Window root;
-    XEvent event;
-
-    root = DefaultRootWindow(display);
-    XWarpPointer(display, None, root, 0, 0, 0, 0, x, y);
-
-    memset(&event, 0, sizeof(event));
-
-    event.xbutton.type        = ButtonPress;
-    event.xbutton.button      = click_type;
-    event.xbutton.same_screen = True;
-
-    XQueryPointer(display, root, &event.xbutton.root, &event.xbutton.window,
-                  &event.xbutton.x_root, &event.xbutton.y_root,
-                  &event.xbutton.x, &event.xbutton.y, &event.xbutton.state);
-
-    event.xbutton.subwindow = event.xbutton.window;
-
-    while(event.xbutton.subwindow) {
-      event.xbutton.window = event.xbutton.subwindow;
-      XQueryPointer(display, event.xbutton.window,&event.xbutton.root,
-                    &event.xbutton.subwindow, &event.xbutton.x_root,
-                    &event.xbutton.y_root, &event.xbutton.x, &event.xbutton.y,
-                    &event.xbutton.state);
-    }
-
-    if(XSendEvent(display, PointerWindow, True, 0xfff, &event)==0)
-      fprintf(stderr, "XSendEvent()\n");
-
-    XFlush(display);
-    portable_usleep(t); /* keeps the click pressed */
-
-    event.type = ButtonRelease;
-    event.xbutton.state = 0x100;
-
-    if(XSendEvent(display, PointerWindow, True, 0xfff, &event)==0)
-      fprintf(stderr, "XSendEvent()\n");
-
-    XFlush(display);
-}
-
+#include "WindowingSystemManager.h"
 
 /*
  * Constructor and destructor
@@ -399,57 +341,54 @@ void MainWindow::togglePlayAll()
 
 void MainWindow::next5Sec()
 {
-  if (!engine)
-    return;
-  long long time = engine->getTimeWithSubtitleOffset(currentTime, 5);
-  currentTime = time;
-  skipped = true;
-  update();
+    adjustTime(5000);
+    update();
 }
 
 void MainWindow::previous5Sec()
 {
-  if (!engine)
-    return;
-  long long time = engine->getTimeWithSubtitleOffset(currentTime, -5);
-  currentTime = time;
-  skipped = true;
-  update();
+    adjustTime(-5000);
+    update();
 }
 
 void MainWindow::fastForwardVideo()
 {
+  QPoint initCursorPosition = QCursor::pos();
 
+  int x = 400;
+  int y = 600;
+
+  QCursor::setPos(QPoint(x, y));
+
+  WindowingSystemManager::simulateButtonClick(XRightArrow);
+
+  QCursor::setPos(initCursorPosition);
 }
 
 void MainWindow::fastBackwardVideo()
 {
+  QPoint initCursorPosition = QCursor::pos();
 
+  int x = 400;
+  int y = 600;
+
+  QCursor::setPos(QPoint(x, y));
+
+  WindowingSystemManager::simulateButtonClick(XLeftArrow);
+
+  QCursor::setPos(initCursorPosition);
 }
 
 void MainWindow::togglePlayVideo()
 {
-    int x;
-    int y;
-    Display        *display;
-    struct timeval t;
+  QPoint initCursorPosition = QCursor::pos();
 
-    display = XOpenDisplay(NULL);
+  int x = 400;
+  int y = 600;
 
-    if(!display) {
-      fprintf(stderr, "Can't open display!\n");
-      exit(EXIT_FAILURE);
-    }
+  WindowingSystemManager::mouseClick(x, y);
 
-    x = 400;
-    y = 600;
-
-    t.tv_sec  = 0;
-    t.tv_usec = 100000;  /* 0.5 secs */
-
-    mouse_click(display, x, y, MOUSE_LEFT_CLICK, &t);
-
-    XCloseDisplay(display);
+  QCursor::setPos(initCursorPosition);
 }
 
 /*

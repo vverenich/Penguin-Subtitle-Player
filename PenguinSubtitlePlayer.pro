@@ -12,6 +12,7 @@ TARGET = PenguinSubtitlePlayer
 TEMPLATE = app
 
 SOURCES += \
+    src/WindowingSystemManager.cpp \
     src/uchardet/src/LangModels/LangArabicModel.cpp \
     src/uchardet/src/LangModels/LangBulgarianModel.cpp \
     src/uchardet/src/LangModels/LangCroatianModel.cpp \
@@ -63,6 +64,7 @@ SOURCES += \
     src/uchardet/src/uchardet.cpp
 
 HEADERS += \
+    src/WindowingSystemManager.h \
     src/uchardet/src/CharDistribution.h \
     src/uchardet/src/JpCntx.h \
     src/uchardet/src/nsBig5Prober.h \
@@ -203,4 +205,4 @@ unix:!macx {
     INSTALLS += target icon desktop appdata
 }
 
-unix:!macx: LIBS +=  -lX11
+unix:!macx: LIBS +=  -lX11 -lXtst
