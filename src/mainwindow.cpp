@@ -689,7 +689,6 @@ QString MainWindow::promptForEncoding(QStringList codecNames,
 
 void MainWindow::adjustTime(long long interval) {
   if (!engine) {
-    qDebug() << "fail";
     return;
   }
   currentTime =
