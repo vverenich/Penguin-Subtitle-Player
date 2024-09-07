@@ -218,11 +218,13 @@ void MainWindow::showToggleContextMenu(const QPoint &pos) {
 
 void MainWindow::fastForward() {
   adjustTime(getAdjustInterval());
+  skipped = true;
   update();
 }
 
 void MainWindow::fastBackward() {
   adjustTime(-getAdjustInterval());
+  skipped = true;
   update();
 }
 
@@ -341,14 +343,15 @@ void MainWindow::togglePlayAll()
 
 void MainWindow::next5Sec()
 {
-    adjustTime(5000);
-    update();
+  adjustTime(5000);
+  skipped = true;
+  update();
 }
 
-void MainWindow::previous5Sec()
-{
-    adjustTime(-5000);
-    update();
+void MainWindow::previous5Sec() {
+  adjustTime(-5000);
+  skipped = true;
+  update();
 }
 
 void MainWindow::fastForwardVideo()
@@ -685,8 +688,10 @@ QString MainWindow::promptForEncoding(QStringList codecNames,
 }
 
 void MainWindow::adjustTime(long long interval) {
-  if (!engine)
+  if (!engine) {
+    qDebug() << "fail";
     return;
+  }
   currentTime =
       qMin(engine->getFinishTime(), qMax(0LL, currentTime + interval));
 }
@@ -696,4 +701,3 @@ long long MainWindow::getAdjustInterval() {
       .value("gen/adjust", QVariant::fromValue(PrefConstants::ADJUST_INTERVAL))
       .toInt();
 }
-
